@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.env
+*.sqlite3
+*.log
+
+# VSCode
+.vscode/
+
+# Django
+db.sqlite3
+media/
+static/
+
+# Poetry
+poetry.lock
+*.egg-info/
+
+# Environment
+.env
+
+# Pytest
+htmlcov/
+.coverage
+.tox/
+.pytest_cache/
+
+# OS
+.DS_Store
+Thumbs.db
