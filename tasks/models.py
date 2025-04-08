@@ -1,10 +1,16 @@
 from django.db import models
 from django.conf import settings
+from categories.models import Category
 
 
 class Task(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="tasks",
+    )
+    category = models.ForeignKey(
+        Category,
         on_delete=models.CASCADE,
         related_name="tasks",
     )
