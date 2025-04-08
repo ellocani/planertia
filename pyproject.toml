@@ -6,7 +6,6 @@ authors = [
     {name = "min130111",email = "min130111@naver.com"}
 ]
 license = {text = "MIT"}
-readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "django (>=5.2,<6.0)",
@@ -15,6 +14,14 @@ dependencies = [
     "django-cors-headers (>=4.7.0,<5.0.0)"
 ]
 
+[tool.poetry]
+packages = [
+    { include = "backend" },
+    { include = "users" },
+    { include = "tasks" },
+    { include = "memos" },
+    { include = "categories" }
+]
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
