@@ -1,13 +1,27 @@
-// src/App.tsx
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Home from "./pages/Home";
+import Layout from "@/components/layout/Layout";
+import Home from "@/pages/Home";
+import Login from "@/pages/Login";
+import Signup from "@/pages/Signup";
+import Mypage from "@/pages/Mypage";
+import Categories from "@/pages/Categories";
+import Memos from "@/pages/Memos";
+import Tasks from "@/pages/Tasks";
 
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Home />} />
-      </Routes>
+      <Layout>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/mypage" element={<Mypage />} />
+          <Route path="/category" element={<Categories />} />
+          <Route path="/memos" element={<Memos />} />
+          <Route path="/task" element={<Tasks />} />
+        </Routes>
+      </Layout>
     </BrowserRouter>
   );
 }
