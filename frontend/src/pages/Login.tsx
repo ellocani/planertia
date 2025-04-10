@@ -11,7 +11,7 @@ export default function Login() {
     e.preventDefault();
 
     try {
-      const response = await axiosInstance.post("token/", {
+      const response = await axiosInstance.post("users/login/", {
         email,
         password,
       });
