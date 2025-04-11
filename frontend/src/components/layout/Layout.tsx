@@ -1,18 +1,35 @@
-import { ReactNode } from "react";
-import Header from "./Header";
+import { Link, useNavigate } from "react-router-dom";
 
-interface LayoutProps {
-  children: ReactNode;
-}
+export default function Layout({ children }: { children: React.ReactNode }) {
+  const navigate = useNavigate();
+  const isLoggedIn = !!localStorage.getItem("access");
 
-export default function Layout({ children }: LayoutProps) {
+  const handleLogout = () => {
+    localStorage.removeItem("access");
+    localStorage.removeItem("refresh");
+    alert("로그아웃 되었습니다.");
+    navigate("/");
+  };
+
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-      <main className="flex-grow container mx-auto px-4 py-6">{children}</main>
-      <footer className="text-center text-sm text-gray-500 py-4">
-        © 2025 Planertia. All rights reserved.
-      </footer>
+    <div>
+      <header className="flex justify-between items-center p-4 border-b">
+        <Link to="/" className="text-2xl font-bold text-primary">Planertia</Link>
+        <nav className="flex space-x-4">
+          <Link to="/task">할 일</Link>
+          <Link to="/memos">메모</Link>
+          <Link to="/mypage">마이페이지</Link>
+          {isLoggedIn ? (
+            <button onClick={handleLogout} className="text-red-500">로그아웃</button>
+          ) : (
+            <>
+              <Link to="/login">로그인</Link>
+              <Link to="/signup">회원가입</Link>
+            </>
+          )}
+        </nav>
+      </header>
+      <main>{children}</main>
     </div>
   );
 }

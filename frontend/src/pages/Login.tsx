@@ -20,7 +20,7 @@ export default function Login() {
       localStorage.setItem("refresh", response.data.refresh);
 
       alert("로그인 성공!");
-      navigate("/task");
+      navigate("/dashboard");
     } catch (error) {
       console.error("로그인 실패:", error);
       alert("로그인 실패. 이메일과 비밀번호를 확인하세요.");
