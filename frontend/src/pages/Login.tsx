@@ -22,7 +22,7 @@ export default function Login() {
       alert("로그인 성공!");
       navigate("/task");
     } catch (error) {
-      console.error(error);
+      console.error("로그인 실패:", error);
       alert("로그인 실패. 이메일과 비밀번호를 확인하세요.");
     }
   };

@@ -17,14 +17,12 @@ export default function Signup() {
         username,
         password,
       });
-      alert("회원가입 성공! 로그인 해주세요.");
+
+      alert("회원가입 성공! 로그인해주세요.");
       navigate("/login");
-    } catch (error: any) {
-      console.error(error);
-      alert(
-        error.response?.data?.message ||
-          "회원가입 실패. 입력 정보를 다시 확인해주세요."
-      );
+    } catch (error) {
+      console.error("회원가입 실패:", error);
+      alert("회원가입 실패. 입력 내용을 확인하세요.");
     }
   };
 
