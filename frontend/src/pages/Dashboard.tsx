@@ -1,15 +1,10 @@
-// src/pages/Dashboard.tsx
-
 import { useEffect, useState } from "react";
 import axiosInstance from "@/lib/axios";
-import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { GripVertical } from "lucide-react";
-import { DndContext, closestCenter } from "@dnd-kit/core";
-import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import { Button } from "@/components/ui/button";
+import { Plus, Trash2, PencilLine, CheckCircle } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
 
 interface Task {
   id: number;
@@ -27,7 +22,11 @@ export default function Dashboard() {
   const [memos, setMemos] = useState<Memo[]>([]);
   const [newTask, setNewTask] = useState("");
   const [newMemo, setNewMemo] = useState("");
-  const [date, setDate] = useState<Date | undefined>(new Date());
+  const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
+  const [editingTaskText, setEditingTaskText] = useState("");
+  const [editingMemoId, setEditingMemoId] = useState<number | null>(null);
+  const [editingMemoText, setEditingMemoText] = useState("");
+  const [date, setDate] = useState(new Date());
 
   useEffect(() => {
     fetchTasks();
@@ -80,6 +79,20 @@ export default function Dashboard() {
     }
   };
 
+  const toggleTask = async (task: Task) => {
+    try {
+      const response = await axiosInstance.put(`/tasks/${task.id}/`, {
+        ...task,
+        is_completed: !task.is_completed,
+      });
+      setTasks((prev) =>
+        prev.map((t) => (t.id === task.id ? response.data : t))
+      );
+    } catch (error) {
+      console.error("할 일 토글 실패:", error);
+    }
+  };
+
   const deleteTask = async (id: number) => {
     try {
       await axiosInstance.delete(`/tasks/${id}/`);
@@ -98,153 +111,193 @@ export default function Dashboard() {
     }
   };
 
-  const toggleTaskCompletion = async (task: Task) => {
+  const saveEditingTask = async (id: number) => {
     try {
-      const response = await axiosInstance.put(`/tasks/${task.id}/`, {
+      const task = tasks.find((task) => task.id === id);
+      if (!task) return;
+
+      const response = await axiosInstance.put(`/tasks/${id}/`, {
         ...task,
-        is_completed: !task.is_completed,
+        title: editingTaskText,
       });
-      setTasks((prev) => prev.map((t) => (t.id === task.id ? response.data : t)));
+      setTasks((prev) =>
+        prev.map((task) => (task.id === id ? response.data : task))
+      );
+      setEditingTaskId(null);
+      setEditingTaskText("");
     } catch (error) {
-      console.error("완료 토글 실패:", error);
+      console.error("할 일 편집 실패:", error);
     }
   };
 
-  // 드래그 앤 드롭 이벤트
-  const handleDragEnd = (event: any, type: "task" | "memo") => {
-    const { active, over } = event;
-    if (active.id !== over?.id) {
-      if (type === "task") {
-        const oldIndex = tasks.findIndex((task) => task.id === active.id);
-        const newIndex = tasks.findIndex((task) => task.id === over.id);
-        setTasks(arrayMove(tasks, oldIndex, newIndex));
-      } else if (type === "memo") {
-        const oldIndex = memos.findIndex((memo) => memo.id === active.id);
-        const newIndex = memos.findIndex((memo) => memo.id === over.id);
-        setMemos(arrayMove(memos, oldIndex, newIndex));
-      }
+  const saveEditingMemo = async (id: number) => {
+    try {
+      const memo = memos.find((memo) => memo.id === id);
+      if (!memo) return;
+
+      const response = await axiosInstance.put(`/memos/${id}/`, {
+        ...memo,
+        content: editingMemoText,
+      });
+      setMemos((prev) =>
+        prev.map((memo) => (memo.id === id ? response.data : memo))
+      );
+      setEditingMemoId(null);
+      setEditingMemoText("");
+    } catch (error) {
+      console.error("메모 편집 실패:", error);
     }
   };
+
+  const iconButtonClass = "hover:text-blue-500 transition-colors";
 
   return (
-    <div className="p-8 space-y-8 bg-muted min-h-screen">
+    <div className="p-8 space-y-8 bg-gray-50 min-h-screen">
       <h1 className="text-3xl font-bold text-center mb-8">Dashboard</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* 캘린더 */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              📅 캘린더
-            </CardTitle>
+            <CardTitle>📅 캘린더</CardTitle>
           </CardHeader>
           <CardContent>
-            <Calendar mode="single" selected={date} onSelect={setDate} />
+            <Calendar value={date} onChange={setDate} />
           </CardContent>
         </Card>
 
-        {/* 할 일 관리 */}
+        {/* 할 일 */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              📝 할 일 관리
-            </CardTitle>
+            <CardTitle>📝 할 일 관리</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex space-x-2 mb-4">
               <Input
-                placeholder="새 할 일을 입력하세요"
                 value={newTask}
                 onChange={(e) => setNewTask(e.target.value)}
+                placeholder="새 할 일을 입력하세요"
               />
-              <Button onClick={addTask}>추가</Button>
+              <Button variant="outline" onClick={addTask}>
+                <Plus size={16} />
+              </Button>
             </div>
-            <DndContext collisionDetection={closestCenter} onDragEnd={(event) => handleDragEnd(event, "task")}>
-              <SortableContext items={tasks.map((task) => task.id)} strategy={verticalListSortingStrategy}>
-                {tasks.map((task) => (
-                  <SortableItem
-                    key={task.id}
-                    id={task.id}
-                    content={task.title}
-                    completed={task.is_completed}
-                    onDelete={() => deleteTask(task.id)}
-                    onToggle={() => toggleTaskCompletion(task)}
-                  />
-                ))}
-              </SortableContext>
-            </DndContext>
+            <ul className="space-y-2">
+              {tasks.map((task) => (
+                <li
+                  key={task.id}
+                  className="flex items-center space-x-2 border rounded p-2"
+                >
+                  {editingTaskId === task.id ? (
+                    <Input
+                      value={editingTaskText}
+                      onChange={(e) => setEditingTaskText(e.target.value)}
+                    />
+                  ) : (
+                    <span
+                      className={`flex-grow ${
+                        task.is_completed ? "line-through text-gray-400" : ""
+                      }`}
+                    >
+                      {task.title}
+                    </span>
+                  )}
+                  {editingTaskId === task.id ? (
+                    <button
+                      onClick={() => saveEditingTask(task.id)}
+                      className={iconButtonClass}
+                    >
+                      <CheckCircle size={18} />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setEditingTaskId(task.id);
+                        setEditingTaskText(task.title);
+                      }}
+                      className={iconButtonClass}
+                    >
+                      <PencilLine size={18} />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => toggleTask(task)}
+                    className={iconButtonClass}
+                  >
+                    <CheckCircle size={18} />
+                  </button>
+                  <button
+                    onClick={() => deleteTask(task.id)}
+                    className={iconButtonClass}
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </li>
+              ))}
+            </ul>
           </CardContent>
         </Card>
 
-        {/* 메모 관리 */}
+        {/* 메모 */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              🗒️ 메모 관리
-            </CardTitle>
+            <CardTitle>🗒️ 메모 관리</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex space-x-2 mb-4">
               <Input
-                placeholder="새 메모를 입력하세요"
                 value={newMemo}
                 onChange={(e) => setNewMemo(e.target.value)}
+                placeholder="새 메모를 입력하세요"
               />
-              <Button onClick={addMemo}>추가</Button>
+              <Button variant="outline" onClick={addMemo}>
+                <Plus size={16} />
+              </Button>
             </div>
-            <DndContext collisionDetection={closestCenter} onDragEnd={(event) => handleDragEnd(event, "memo")}>
-              <SortableContext items={memos.map((memo) => memo.id)} strategy={verticalListSortingStrategy}>
-                {memos.map((memo) => (
-                  <SortableItem
-                    key={memo.id}
-                    id={memo.id}
-                    content={memo.content}
-                    onDelete={() => deleteMemo(memo.id)}
-                  />
-                ))}
-              </SortableContext>
-            </DndContext>
+            <ul className="space-y-2">
+              {memos.map((memo) => (
+                <li
+                  key={memo.id}
+                  className="flex items-center space-x-2 border rounded p-2"
+                >
+                  {editingMemoId === memo.id ? (
+                    <Input
+                      value={editingMemoText}
+                      onChange={(e) => setEditingMemoText(e.target.value)}
+                    />
+                  ) : (
+                    <span className="flex-grow">{memo.content}</span>
+                  )}
+                  {editingMemoId === memo.id ? (
+                    <button
+                      onClick={() => saveEditingMemo(memo.id)}
+                      className={iconButtonClass}
+                    >
+                      <CheckCircle size={18} />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setEditingMemoId(memo.id);
+                        setEditingMemoText(memo.content);
+                      }}
+                      className={iconButtonClass}
+                    >
+                      <PencilLine size={18} />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => deleteMemo(memo.id)}
+                    className={iconButtonClass}
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </li>
+              ))}
+            </ul>
           </CardContent>
         </Card>
       </div>
-    </div>
-  );
-}
-
-// 드래그 가능한 공통 아이템 컴포넌트
-function SortableItem({
-  id,
-  content,
-  completed,
-  onDelete,
-  onToggle,
-}: {
-  id: number;
-  content: string;
-  completed?: boolean;
-  onDelete: () => void;
-  onToggle?: () => void;
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
-  return (
-    <div ref={setNodeRef} style={style} className="flex items-center mb-2 bg-white p-2 rounded shadow">
-      <div {...attributes} {...listeners} className="cursor-grab mr-2 text-gray-400">
-        <GripVertical size={18} />
-      </div>
-      <span className={`flex-grow ${completed ? "line-through text-gray-400" : ""}`}>{content}</span>
-      {onToggle && (
-        <Button variant="secondary" size="sm" onClick={onToggle} className="mr-2">
-          {completed ? "복구" : "완료"}
-        </Button>
-      )}
-      <Button variant="destructive" size="sm" onClick={onDelete}>
-        삭제
-      </Button>
     </div>
   );
 }
