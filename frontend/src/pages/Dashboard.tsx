@@ -1,7 +1,15 @@
+// src/pages/Dashboard.tsx
+
 import { useEffect, useState } from "react";
 import axiosInstance from "@/lib/axios";
-import Calendar from "react-calendar";
-import "react-calendar/dist/Calendar.css";
+import { Calendar } from "@/components/ui/calendar";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { GripVertical } from "lucide-react";
+import { DndContext, closestCenter } from "@dnd-kit/core";
+import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface Task {
   id: number;
@@ -19,11 +27,7 @@ export default function Dashboard() {
   const [memos, setMemos] = useState<Memo[]>([]);
   const [newTask, setNewTask] = useState("");
   const [newMemo, setNewMemo] = useState("");
-  const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
-  const [editingTaskText, setEditingTaskText] = useState("");
-  const [editingMemoId, setEditingMemoId] = useState<number | null>(null);
-  const [editingMemoText, setEditingMemoText] = useState("");
-  const [date, setDate] = useState(new Date());
+  const [date, setDate] = useState<Date | undefined>(new Date());
 
   useEffect(() => {
     fetchTasks();
@@ -48,248 +52,199 @@ export default function Dashboard() {
     }
   };
 
-  // 할 일 추가
   const addTask = async () => {
-    if (newTask.trim() === "") return;
+    if (!newTask.trim()) return;
     try {
       const response = await axiosInstance.post("/tasks/", {
         title: newTask,
         category: 1,
         is_completed: false,
       });
-      setTasks([...tasks, response.data]);
+      setTasks((prev) => [...prev, response.data]);
       setNewTask("");
     } catch (error) {
       console.error("할 일 추가 실패:", error);
     }
   };
 
-  // 메모 추가
   const addMemo = async () => {
-    if (newMemo.trim() === "") return;
+    if (!newMemo.trim()) return;
     try {
       const response = await axiosInstance.post("/memos/", {
         content: newMemo,
       });
-      setMemos([...memos, response.data]);
+      setMemos((prev) => [...prev, response.data]);
       setNewMemo("");
     } catch (error) {
       console.error("메모 추가 실패:", error);
     }
   };
 
-  // 할 일 완료 토글
-  const toggleTask = async (task: Task) => {
-    try {
-      const response = await axiosInstance.put(`/tasks/${task.id}/`, {
-        ...task,
-        is_completed: !task.is_completed,
-      });
-      setTasks(tasks.map((t) => (t.id === task.id ? response.data : t)));
-    } catch (error) {
-      console.error("할 일 토글 실패:", error);
-    }
-  };
-
-  // 할 일 삭제
   const deleteTask = async (id: number) => {
     try {
       await axiosInstance.delete(`/tasks/${id}/`);
-      setTasks(tasks.filter((task) => task.id !== id));
+      setTasks((prev) => prev.filter((task) => task.id !== id));
     } catch (error) {
       console.error("할 일 삭제 실패:", error);
     }
   };
 
-  // 메모 삭제
   const deleteMemo = async (id: number) => {
     try {
       await axiosInstance.delete(`/memos/${id}/`);
-      setMemos(memos.filter((memo) => memo.id !== id));
+      setMemos((prev) => prev.filter((memo) => memo.id !== id));
     } catch (error) {
       console.error("메모 삭제 실패:", error);
     }
   };
 
-  // 할 일 편집 저장
-  const saveEditingTask = async (id: number) => {
+  const toggleTaskCompletion = async (task: Task) => {
     try {
-      const task = tasks.find((task) => task.id === id);
-      if (!task) return;
-
-      const response = await axiosInstance.put(`/tasks/${id}/`, {
+      const response = await axiosInstance.put(`/tasks/${task.id}/`, {
         ...task,
-        title: editingTaskText,
+        is_completed: !task.is_completed,
       });
-      setTasks(tasks.map((t) => (t.id === id ? response.data : t)));
-      setEditingTaskId(null);
-      setEditingTaskText("");
+      setTasks((prev) => prev.map((t) => (t.id === task.id ? response.data : t)));
     } catch (error) {
-      console.error("할 일 편집 실패:", error);
+      console.error("완료 토글 실패:", error);
     }
   };
 
-  // 메모 편집 저장
-  const saveEditingMemo = async (id: number) => {
-    try {
-      const memo = memos.find((memo) => memo.id === id);
-      if (!memo) return;
-
-      const response = await axiosInstance.put(`/memos/${id}/`, {
-        ...memo,
-        content: editingMemoText,
-      });
-      setMemos(memos.map((m) => (m.id === id ? response.data : m)));
-      setEditingMemoId(null);
-      setEditingMemoText("");
-    } catch (error) {
-      console.error("메모 편집 실패:", error);
+  // 드래그 앤 드롭 이벤트
+  const handleDragEnd = (event: any, type: "task" | "memo") => {
+    const { active, over } = event;
+    if (active.id !== over?.id) {
+      if (type === "task") {
+        const oldIndex = tasks.findIndex((task) => task.id === active.id);
+        const newIndex = tasks.findIndex((task) => task.id === over.id);
+        setTasks(arrayMove(tasks, oldIndex, newIndex));
+      } else if (type === "memo") {
+        const oldIndex = memos.findIndex((memo) => memo.id === active.id);
+        const newIndex = memos.findIndex((memo) => memo.id === over.id);
+        setMemos(arrayMove(memos, oldIndex, newIndex));
+      }
     }
   };
 
   return (
-    <div className="p-8 space-y-8 bg-gray-50 min-h-screen">
+    <div className="p-8 space-y-8 bg-muted min-h-screen">
       <h1 className="text-3xl font-bold text-center mb-8">Dashboard</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* 캘린더 */}
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4">📅 캘린더</h2>
-          <Calendar onChange={setDate} value={date} />
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              📅 캘린더
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Calendar mode="single" selected={date} onSelect={setDate} />
+          </CardContent>
+        </Card>
 
         {/* 할 일 관리 */}
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4">📝 할 일 관리</h2>
-          <div className="flex space-x-2 mb-4">
-            <input
-              type="text"
-              value={newTask}
-              onChange={(e) => setNewTask(e.target.value)}
-              placeholder="새 할 일을 입력하세요"
-              className="border rounded-md p-2 flex-grow"
-            />
-            <button
-              onClick={addTask}
-              className="bg-blue-500 text-white px-4 rounded-md hover:bg-blue-600"
-            >
-              추가
-            </button>
-          </div>
-          <ul className="space-y-2">
-            {tasks.map((task) => (
-              <li key={task.id} className="flex items-center space-x-2">
-                {editingTaskId === task.id ? (
-                  <input
-                    type="text"
-                    value={editingTaskText}
-                    onChange={(e) => setEditingTaskText(e.target.value)}
-                    className="border rounded p-1 flex-grow"
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              📝 할 일 관리
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex space-x-2 mb-4">
+              <Input
+                placeholder="새 할 일을 입력하세요"
+                value={newTask}
+                onChange={(e) => setNewTask(e.target.value)}
+              />
+              <Button onClick={addTask}>추가</Button>
+            </div>
+            <DndContext collisionDetection={closestCenter} onDragEnd={(event) => handleDragEnd(event, "task")}>
+              <SortableContext items={tasks.map((task) => task.id)} strategy={verticalListSortingStrategy}>
+                {tasks.map((task) => (
+                  <SortableItem
+                    key={task.id}
+                    id={task.id}
+                    content={task.title}
+                    completed={task.is_completed}
+                    onDelete={() => deleteTask(task.id)}
+                    onToggle={() => toggleTaskCompletion(task)}
                   />
-                ) : (
-                  <span
-                    className={`flex-grow ${
-                      task.is_completed ? "line-through text-gray-400" : ""
-                    }`}
-                  >
-                    {task.title}
-                  </span>
-                )}
-                {editingTaskId === task.id ? (
-                  <button
-                    onClick={() => saveEditingTask(task.id)}
-                    className="bg-green-500 text-white px-2 rounded"
-                  >
-                    저장
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => {
-                      setEditingTaskId(task.id);
-                      setEditingTaskText(task.title);
-                    }}
-                    className="bg-yellow-400 text-white px-2 rounded"
-                  >
-                    편집
-                  </button>
-                )}
-                <button
-                  onClick={() => toggleTask(task)}
-                  className="bg-gray-400 text-white px-2 rounded"
-                >
-                  {task.is_completed ? "복구" : "완료"}
-                </button>
-                <button
-                  onClick={() => deleteTask(task.id)}
-                  className="bg-red-500 text-white px-2 rounded"
-                >
-                  삭제
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
+                ))}
+              </SortableContext>
+            </DndContext>
+          </CardContent>
+        </Card>
 
         {/* 메모 관리 */}
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4">🗒️ 메모 관리</h2>
-          <div className="flex space-x-2 mb-4">
-            <input
-              type="text"
-              value={newMemo}
-              onChange={(e) => setNewMemo(e.target.value)}
-              placeholder="새 메모를 입력하세요"
-              className="border rounded-md p-2 flex-grow"
-            />
-            <button
-              onClick={addMemo}
-              className="bg-blue-500 text-white px-4 rounded-md hover:bg-blue-600"
-            >
-              추가
-            </button>
-          </div>
-          <ul className="space-y-2">
-            {memos.map((memo) => (
-              <li key={memo.id} className="flex items-center space-x-2">
-                {editingMemoId === memo.id ? (
-                  <input
-                    type="text"
-                    value={editingMemoText}
-                    onChange={(e) => setEditingMemoText(e.target.value)}
-                    className="border rounded p-1 flex-grow"
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              🗒️ 메모 관리
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex space-x-2 mb-4">
+              <Input
+                placeholder="새 메모를 입력하세요"
+                value={newMemo}
+                onChange={(e) => setNewMemo(e.target.value)}
+              />
+              <Button onClick={addMemo}>추가</Button>
+            </div>
+            <DndContext collisionDetection={closestCenter} onDragEnd={(event) => handleDragEnd(event, "memo")}>
+              <SortableContext items={memos.map((memo) => memo.id)} strategy={verticalListSortingStrategy}>
+                {memos.map((memo) => (
+                  <SortableItem
+                    key={memo.id}
+                    id={memo.id}
+                    content={memo.content}
+                    onDelete={() => deleteMemo(memo.id)}
                   />
-                ) : (
-                  <span className="flex-grow">{memo.content}</span>
-                )}
-                {editingMemoId === memo.id ? (
-                  <button
-                    onClick={() => saveEditingMemo(memo.id)}
-                    className="bg-green-500 text-white px-2 rounded"
-                  >
-                    저장
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => {
-                      setEditingMemoId(memo.id);
-                      setEditingMemoText(memo.content);
-                    }}
-                    className="bg-yellow-400 text-white px-2 rounded"
-                  >
-                    편집
-                  </button>
-                )}
-                <button
-                  onClick={() => deleteMemo(memo.id)}
-                  className="bg-red-500 text-white px-2 rounded"
-                >
-                  삭제
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
+                ))}
+              </SortableContext>
+            </DndContext>
+          </CardContent>
+        </Card>
       </div>
+    </div>
+  );
+}
+
+// 드래그 가능한 공통 아이템 컴포넌트
+function SortableItem({
+  id,
+  content,
+  completed,
+  onDelete,
+  onToggle,
+}: {
+  id: number;
+  content: string;
+  completed?: boolean;
+  onDelete: () => void;
+  onToggle?: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center mb-2 bg-white p-2 rounded shadow">
+      <div {...attributes} {...listeners} className="cursor-grab mr-2 text-gray-400">
+        <GripVertical size={18} />
+      </div>
+      <span className={`flex-grow ${completed ? "line-through text-gray-400" : ""}`}>{content}</span>
+      {onToggle && (
+        <Button variant="secondary" size="sm" onClick={onToggle} className="mr-2">
+          {completed ? "복구" : "완료"}
+        </Button>
+      )}
+      <Button variant="destructive" size="sm" onClick={onDelete}>
+        삭제
+      </Button>
     </div>
   );
 }
