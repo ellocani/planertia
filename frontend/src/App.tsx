@@ -4,10 +4,7 @@ import Home from "@/pages/Home";
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
 import Mypage from "@/pages/Mypage";
-import Categories from "@/pages/Categories";
-import Memos from "@/pages/Memos";
-import Tasks from "@/pages/Tasks";
-import Dashboard from "@/pages/Dashboard"; // 추가!
+import Dashboard from "@/pages/Dashboard";
 
 function App() {
   return (
@@ -15,13 +12,10 @@ function App() {
       <Layout>
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/mypage" element={<Mypage />} />
-          <Route path="/category" element={<Categories />} />
-          <Route path="/memos" element={<Memos />} />
-          <Route path="/task" element={<Tasks />} />
+          <Route path="/dashboard" element={<Dashboard />} />
         </Routes>
       </Layout>
     </BrowserRouter>

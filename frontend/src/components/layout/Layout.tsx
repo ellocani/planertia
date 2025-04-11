@@ -13,11 +13,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div>
-      <header className="flex justify-between items-center p-4 border-b">
+      <header className="flex justify-between items-center p-4 border-b bg-white shadow-sm">
         <Link to="/" className="text-2xl font-bold text-primary">Planertia</Link>
         <nav className="flex space-x-4">
-          <Link to="/task">할 일</Link>
-          <Link to="/memos">메모</Link>
+          <Link to="/dashboard">대시보드</Link>
           <Link to="/mypage">마이페이지</Link>
           {isLoggedIn ? (
             <button onClick={handleLogout} className="text-red-500">로그아웃</button>
