@@ -1,11 +1,13 @@
 import { useState } from "react";
 import axiosInstance from "@/lib/axios";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -16,9 +18,7 @@ export default function Login() {
         password,
       });
 
-      localStorage.setItem("access", response.data.access);
-      localStorage.setItem("refresh", response.data.refresh);
-
+      login(response.data.access, response.data.refresh);
       alert("로그인 성공!");
       navigate("/dashboard");
     } catch (error) {

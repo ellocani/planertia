@@ -8,18 +8,24 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     localStorage.removeItem("access");
     localStorage.removeItem("refresh");
     alert("로그아웃 되었습니다.");
-    navigate("/");
+    navigate("/login"); // 로그아웃 후 바로 로그인 페이지로 이동
+    window.location.reload(); // 상태 및 화면 강제 초기화
   };
 
+
   return (
-    <div>
-      <header className="flex justify-between items-center p-4 border-b bg-white shadow-sm">
-        <Link to="/" className="text-2xl font-bold text-primary">Planertia</Link>
-        <nav className="flex space-x-4">
-          <Link to="/dashboard">대시보드</Link>
-          <Link to="/mypage">마이페이지</Link>
+    <div className="min-h-screen bg-gray-50">
+      <header className="flex justify-between items-center p-4 bg-white border-b shadow-sm">
+        <Link to="/" className="text-2xl font-bold text-blue-600">
+          Planertia
+        </Link>
+        <nav className="flex space-x-6 text-gray-700">
+          {isLoggedIn && <Link to="/dashboard">대시보드</Link>}
+          {isLoggedIn && <Link to="/mypage">마이페이지</Link>}
           {isLoggedIn ? (
-            <button onClick={handleLogout} className="text-red-500">로그아웃</button>
+            <button onClick={handleLogout} className="text-red-500">
+              로그아웃
+            </button>
           ) : (
             <>
               <Link to="/login">로그인</Link>
@@ -28,7 +34,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           )}
         </nav>
       </header>
-      <main>{children}</main>
+      <main className="p-6">{children}</main>
     </div>
   );
 }
